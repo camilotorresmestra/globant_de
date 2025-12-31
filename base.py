@@ -35,7 +35,7 @@ hired_employees = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("name", String),
-    Column("datetime", DateTime),
+    Column("datetime", String),
     Column("department_id", Integer),
     Column("job_id", Integer),
 )
@@ -89,24 +89,38 @@ def get_jobs():
 
 def query_hired_employees_by_quarter():
     query = text("""
-                SELECT  d.department, j.job, 
-                -- SQLITE does not have a QUARTER function, so we use STRFTIME to extract the quarter
-                (CAST((CAST(STRFTIME('%m', h.datetime) AS INTEGER) - 1) / 3 + 1 AS TEXT)) AS Q, 
-                
-                --quarter(h.datetime) as Q, 
-                count(h.id) as employees
-                from hired_employees h left join departments d
-                on h.department_id = d.id 
-                join jobs j
-                on h.job_id = j.id
-
-                where 
-                -- slite does not have a YEAR function, so we use STRFTIME to extract the year
-                STRFTIME('%Y', h.datetime) = '2021'
-
-                GROUP BY d.department, j.job, Q
-                ORDER BY d.department, j.job;
-                --
+                    WITH quarterly_employees AS (
+                        SELECT
+                            d.department,
+                            j.job,
+                            CAST(((CAST(SUBSTR(h.datetime, 6, 2) AS INTEGER) - 1) / 3 + 1) AS TEXT) AS Q,
+                            COUNT(h.id) AS employees
+                        FROM
+                            hired_employees h
+                            LEFT JOIN departments d ON h.department_id = d.id
+                            JOIN jobs j ON h.job_id = j.id
+                        WHERE
+                            STRFTIME('%Y', h.datetime) = '2021'
+                        GROUP BY
+                            d.department,
+                            j.job,
+                            Q
+                    )
+                    SELECT
+                        department,
+                        job,
+                        SUM(CASE WHEN Q = '1' THEN employees ELSE 0 END) AS Q1,
+                        SUM(CASE WHEN Q = '2' THEN employees ELSE 0 END) AS Q2,
+                        SUM(CASE WHEN Q = '3' THEN employees ELSE 0 END) AS Q3,
+                        SUM(CASE WHEN Q = '4' THEN employees ELSE 0 END) AS Q4
+                    FROM
+                        quarterly_employees
+                    GROUP BY
+                        department,
+                        job
+                    ORDER BY
+                        department,
+                        job;
                 """
     )
     with connection.begin():
