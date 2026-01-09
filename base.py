@@ -87,7 +87,7 @@ def get_jobs():
 # table must be ordered alphabetically by department and job.
 
 
-def query_hired_employees_by_quarter():
+def query_hired_employees_by_quarter() -> list[tuple]:
     query = text("""
                     WITH quarterly_employees AS (
                         SELECT
@@ -125,7 +125,8 @@ def query_hired_employees_by_quarter():
     )
     with connection.begin():
         result = connection.execute(query)
-    return result.fetchall()
+        rows = result.mappings().all()
+    return [dict(row) for row in rows] #keeps the name of the columns
 # Requirement 2:
 # List of ids, name and number of employees hired of each department that hired more
 # employees than the mean of employees hired in 2021 for all the departments, ordered
@@ -153,7 +154,8 @@ def query_departments_above_mean_hires():
     )
     with connection.begin():
         result = connection.execute(query)
-    return result.fetchall()
+        rows = result.mappings().all()
+    return [dict(row) for row in rows]  # keeps the name of the columns
 
 
 if __name__ == "__main__":

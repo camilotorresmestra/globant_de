@@ -7,6 +7,7 @@ from sqlalchemy.orm import sessionmaker
 import uvicorn
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+import base
 
 DATABASE_URL = "sqlite:///./globant_de.db"
 
@@ -132,9 +133,21 @@ def create_hired_employee(id: int, name: str, datetime: str, department_id: int,
 #TODO: Implement get functions
 
 
+@app.get("/analytics/employees_by_quarter/")
+def get_employees_by_quarter()-> dict:
+    result = base.query_hired_employees_by_quarter()
+   
+    return {
+        "status": "success",
+        "data": result
+        }
+  
 
-#TODO: Implement Get analytics endpoints
+@app.get("/analytics/departments_above_mean_hires/")
+def get_departments_above_mean() -> dict:
 
+    result = base.query_departments_above_mean_hires()
+    return {"status": "success", "data": result}
 
 
 
