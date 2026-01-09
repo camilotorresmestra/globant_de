@@ -1,6 +1,8 @@
-"""
-The basic database model using SQLAlchemy for a SQLite database.
-"""
+"""The basic database model using SQLAlchemy for a SQLite database."""
+
+from __future__ import annotations
+
+import os
 
 from sqlalchemy import (
     create_engine,
@@ -13,9 +15,12 @@ from sqlalchemy import (
     DateTime,
 )
 
-DATABASE_URL = "sqlite:///./globant_de.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./globant_de.db")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False, "timeout": 30},
+)
 metadata = MetaData()
 connection = engine.connect()
 
@@ -87,7 +92,7 @@ def get_jobs():
 # table must be ordered alphabetically by department and job.
 
 
-def query_hired_employees_by_quarter() -> list[tuple]:
+def query_hired_employees_by_quarter() -> list[dict]:
     query = text("""
                     WITH quarterly_employees AS (
                         SELECT
