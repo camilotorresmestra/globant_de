@@ -74,15 +74,21 @@ def insert_hired_employee(id: int, name: str, datetime: str, department_id: int,
 
 #why?
 app = FastAPI()
-def parse_csv(file_content: str):
+def parse_csv(file_content: str) -> list[list[str]]:
     '''
     A dummy CSV parser function that simulates parsing CSV content.
     '''
     # Dummy parser function
     lines = file_content.splitlines()
-    headers = lines[0].split(",")
-    data = [line.split(",") for line in lines[1:]]
-    return {"headers": headers, "data": data}
+    # we dont expect any headers on this data when inspecting it directly, however a sanity check is added:
+    try:
+        # try to convert the first value to int. If it fails, we assume headers are present.
+        int(lines[0].split(",")[0]) 
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid CSV format: First column should be integer IDs. No headers are expected")
+    #TODO: Eventually manage the case where headers are present
+    data = [line.split(",") for line in lines]
+    return data
 
 
 app = FastAPI()
@@ -93,6 +99,11 @@ def create_upload_file(file: UploadFile = File(...)):
         content = f.read()
     decoded_content = content.decode("utf-8")
     lines = decoded_content.splitlines()
+    #validate the size of the file. Reject files with more than 1,000 lines
+    BATCH_LIMIT = 1000
+    if len(lines) > BATCH_LIMIT:
+        raise HTTPException(status_code=400, detail=f"File too large: Maximum {BATCH_LIMIT} lines allowed")
+    #parse the file and insert data into the database:
     for line in lines:
         fields = line.split(",")
         if file.filename == "departments.csv":
