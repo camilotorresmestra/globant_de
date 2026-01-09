@@ -73,8 +73,7 @@ def insert_hired_employee(id: int, name: str, datetime: str, department_id: int,
 
 
 
-#why?
-app = FastAPI()
+
 def parse_csv(file_content: str) -> list[list[str]]:
     '''
     A dummy CSV parser function that simulates parsing CSV content.
