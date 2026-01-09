@@ -1,6 +1,9 @@
-"""
-The basic database model using SQLAlchemy for a SQLite database.
-"""
+"""The basic database model using SQLAlchemy for a SQLite database."""
+
+from __future__ import annotations
+
+import os
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from sqlalchemy import (
     create_engine,
@@ -13,9 +16,12 @@ from sqlalchemy import (
     DateTime,
 )
 
-DATABASE_URL = "sqlite:///./globant_de.db"
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./globant_de.db")
 
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False, "timeout": 30},
+)
 metadata = MetaData()
 connection = engine.connect()
 
@@ -81,13 +87,40 @@ def get_jobs():
         result = connection.execute(sel)
     return result.fetchall()
 
+def _chunks(items: list[dict], batch_size: int):
+    for start_index in range(0, len(items), batch_size):
+        yield items[start_index : start_index + batch_size]
+# TODO: Reduce deduplication in the following three functions
+def insert_department_many(departments_list: list[dict], batch_size: int = 1000):
+    if not departments_list:
+        return
+    stmt = sqlite_insert(departments).on_conflict_do_nothing(index_elements=["id"])
+    with connection.begin():
+        for chunk in _chunks(departments_list, batch_size):
+            connection.execute(stmt, chunk)
+
+def insert_job_many(jobs_list: list[dict], batch_size: int = 1000):
+    if not jobs_list:
+        return
+    stmt = sqlite_insert(jobs).on_conflict_do_nothing(index_elements=["id"])
+    with connection.begin():
+        for chunk in _chunks(jobs_list, batch_size):
+            connection.execute(stmt, chunk)
+
+def insert_hired_employees_many(hired_employees_list: list[dict], batch_size: int = 1000):
+    if not hired_employees_list:
+        return
+    stmt = sqlite_insert(hired_employees).on_conflict_do_nothing(index_elements=["id"])
+    with connection.begin():
+        for chunk in _chunks(hired_employees_list, batch_size):
+            connection.execute(stmt, chunk)
 
 # Requirement 1
 # Number of employees hired for each job and department in 2021 divided by quarter. The
 # table must be ordered alphabetically by department and job.
 
 
-def query_hired_employees_by_quarter() -> list[tuple]:
+def query_hired_employees_by_quarter() -> list[dict]:
     query = text("""
                     WITH quarterly_employees AS (
                         SELECT
