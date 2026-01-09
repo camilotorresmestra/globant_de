@@ -144,7 +144,7 @@ def get_employees_by_quarter()-> dict:
   
 
 @app.get("/analytics/departments_above_mean_hires/")
-def get_departments_above_mean():
+def get_departments_above_mean() -> dict:
 
     result = base.query_departments_above_mean_hires()
     return {"status": "success", "data": result}
