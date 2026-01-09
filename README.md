@@ -5,16 +5,27 @@ Hello! This is the code repository for the soluiton to the Globant Data Engineer
 The challenge was to create a data engineering pipeline that can provide Analytics for an internal employee management system, through a REST API.
 
 ## Architecture
+ 
+First draft of architecture for the solution: 
+![alt text](image.png)
 
-TBD
+## Tech Stack
 
-### Tech Stack
+- Medallion architecture:
+  - Bronze: Raw data ingestion from CSV files
+  - Silver: Data cleaning and transformation into Data Model
+  - Gold: Aggregated data for analytics
+- REST API: FastAPI application to serve the aggregated data
+- Python to ingest, validate and clean data
+- DBMS: SQLite (Migrate to Postgres in a future iteration)
+- Docker for container and environment management
 
-- Python 3.12
-- FastAPI
-- Uvicorn
-- Pandas
-- SQLite (for the first iteration) (Eventually BigQuery, PostgreSQL, MySQL, etc.) (also using sqlglot we can make it database agnostic)
+## How to run
+
+1. Clone the repository
+2. Launch docker-compose
+3. Acces the FastApi documentation site, to graphically interact with the API: `http://localhost:8000/docs`
+4. Navigate to the endpoints and test them out.
 
 ---------
 
