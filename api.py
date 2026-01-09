@@ -106,6 +106,22 @@ def create_upload_file(file: UploadFile = File(...)):
                         f"{expected_columns} columns, got {len(r)}"
                     ),
                 )
+            else:
+                try:
+                    int(r[0])  # id
+                    int(r[3])  # department_id
+                    int(r[4])  # job_id
+                except ValueError:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=(
+                            f"Invalid data type in row {idx} of hired_employees.csv: "
+                            "id, department_id, and job_id should be integers"
+                        ),
+                    )
+        payload = [
+            {
+                "id": int(r[0]),            
                 "name": r[1],
                 "datetime": r[2],
                 "department_id": int(r[3]),
