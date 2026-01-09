@@ -62,31 +62,31 @@ def create_upload_file(file: UploadFile = File(...)):
     if len(lines) > BATCH_LIMIT:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large: Unsupported for Large Files. {BATCH_LIMIT} lines allowed",
+            detail=f"File too large: Unsupported for Large {BATCH_LIMIT} lines allowed",
         )
     # parse the file and insert data into the database:
-    for line in lines:
-        fields = line.split(",")
-        if file.filename == "departments.csv":
-            # TODO: Standardize ColumnMapping across the project
-            base.insert_department_many(
-                [{"id": int(fields[0]), "department": fields[1]}]
-            )
+    rows = parse_csv(decoded_content)
 
-        elif file.filename == "jobs.csv":
-            base.insert_job_many([{"id": int(fields[0]), "job": fields[1]}])
-        elif file.filename == "hired_employees.csv":
-            base.insert_hired_employees_many(
-                [
-                    {
-                        "id": int(fields[0]),
-                        "name": fields[1],
-                        "datetime": fields[2],
-                        "department_id": int(fields[3]),
-                        "job_id": int(fields[4]),
-                    }
-                ]
-            )
+    if file.filename == "departments.csv":
+        payload = [{"id": int(r[0]), "department": r[1]} for r in rows]
+        base.insert_department_many(payload, batch_size=1000)
+
+    elif file.filename == "jobs.csv":
+        payload = [{"id": int(r[0]), "job": r[1]} for r in rows]
+        base.insert_job_many(payload, batch_size=1000)
+
+    elif file.filename == "hired_employees.csv":
+        payload = [
+            {
+                "id": int(r[0]),
+                "name": r[1],
+                "datetime": r[2],
+                "department_id": int(r[3]),
+                "job_id": int(r[4]),
+            }
+            for r in rows
+        ]
+        base.insert_hired_employees_many(payload, batch_size=1000)
     return {"filename": file.filename, "status": "uploaded and data inserted"}
 
 

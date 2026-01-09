@@ -87,28 +87,33 @@ def get_jobs():
         result = connection.execute(sel)
     return result.fetchall()
 
-def insert_department_many(departments_list: list[dict]):
-    # Ignore rows that violate UNIQUE/PK constraints (SQLite)
+def _chunks(items: list[dict], batch_size: int):
+    for i in range(0, len(items), batch_size):
+        yield items[i : i + batch_size]
 
-    stmt = sqlite_insert(departments).values(departments_list)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])  # PK/unique key
-
+def insert_department_many(departments_list: list[dict], batch_size: int = 1000):
+    if not departments_list:
+        return
+    stmt = sqlite_insert(departments).on_conflict_do_nothing(index_elements=["id"])
     with connection.begin():
-        connection.execute(stmt)
+        for chunk in _chunks(departments_list, batch_size):
+            connection.execute(stmt, chunk)  # executemany
 
-def insert_job_many(jobs_list: list[dict]):
-    stmt = sqlite_insert(jobs).values(jobs_list)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])  # PK/unique key
-
+def insert_job_many(jobs_list: list[dict], batch_size: int = 1000):
+    if not jobs_list:
+        return
+    stmt = sqlite_insert(jobs).on_conflict_do_nothing(index_elements=["id"])
     with connection.begin():
-        connection.execute(stmt)
+        for chunk in _chunks(jobs_list, batch_size):
+            connection.execute(stmt, chunk)
 
-def insert_hired_employees(hired_employees_list: list[dict]):
-    stmt = sqlite_insert(hired_employees).values(hired_employees_list)
-    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])  # PK/unique key
-
+def insert_hired_employees_many(hired_employees_list: list[dict], batch_size: int = 1000):
+    if not hired_employees_list:
+        return
+    stmt = sqlite_insert(hired_employees).on_conflict_do_nothing(index_elements=["id"])
     with connection.begin():
-        connection.execute(stmt)
+        for chunk in _chunks(hired_employees_list, batch_size):
+            connection.execute(stmt, chunk)
 
 # Requirement 1
 # Number of employees hired for each job and department in 2021 divided by quarter. The
