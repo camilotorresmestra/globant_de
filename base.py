@@ -14,6 +14,7 @@ from sqlalchemy import (
     Integer,
     String,
     text,
+    schema,
     DateTime,
     Engine,
     Connection,
@@ -82,6 +83,17 @@ class Repository:
         with self.db_manager.connection.begin():
             result = self.db_manager.connection.execute(sel)
         return result.fetchall()
+
+    def get_one_by_id(self, record_id: int) -> Optional[Dict[str, Any]]:
+        """Get a single record by primary key id.
+
+        Returns a dict (column -> value) if found, otherwise None.
+        """
+
+        sel = self.table.select().where(self.table.c.id == record_id)
+        with self.db_manager.connection.begin():
+            row = self.db_manager.connection.execute(sel).mappings().first()
+        return dict(row) if row is not None else None
     
     def insert_many(self, items: List[Dict[str, Any]], batch_size: int = 1000):
         """Insert multiple records with batch processing and conflict handling."""
@@ -247,9 +259,24 @@ def get_departments():
     return _department_repo.get_all()
 
 
+def get_department_by_id(department_id: int) -> Optional[Dict[str, Any]]:
+    """Get a single department by id."""
+    return _department_repo.get_one_by_id(department_id)
+
+
 def get_jobs():
     """Get all jobs."""
     return _job_repo.get_all()
+
+
+def get_job_by_id(job_id: int) -> Optional[Dict[str, Any]]:
+    """Get a single job by id."""
+    return _job_repo.get_one_by_id(job_id)
+
+
+def get_hired_employee_by_id(hired_employee_id: int) -> Optional[Dict[str, Any]]:
+    """Get a single hired employee by id."""
+    return _hired_employee_repo.get_one_by_id(hired_employee_id)
 
 
 def insert_department_many(departments_list: List[Dict[str, Any]], batch_size: int = 1000):

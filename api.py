@@ -106,6 +106,8 @@ def create_upload_file(file: UploadFile = File(...)):
                         f"{expected_columns} columns, got {len(r)}"
                     ),
                 )
+        payload = [
+            {
                 "name": r[1],
                 "datetime": r[2],
                 "department_id": int(r[3]),
@@ -137,8 +139,25 @@ def create_hired_employee(
     return {"status": "hired employee created"}
 
 
-# TODO: Implement get functions
-
+# TODO: Implement get functions for a unique register
+@app.get("/departments/id/{department_id}/")
+def get_department_by_id(department_id: int) -> dict:
+    dept = base.get_department_by_id(department_id)
+    if dept is None:
+        raise HTTPException(status_code=404, detail="Department not found")
+    return {"status": "success", "data": dept}
+@app.get("/jobs/id/{job_id}/")
+def get_job_by_id(job_id: int) -> dict:
+    job = base.get_job_by_id(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return {"status": "success", "data": job}
+@app.get("/hired_employees/id/{employee_id}/")
+def get_hired_employee_by_id(employee_id: int) -> dict:
+    employee = base.get_hired_employee_by_id(employee_id)
+    if employee is None:
+        raise HTTPException(status_code=404, detail="Hired employee not found")
+    return {"status": "success", "data": employee}
 
 @app.get("/analytics/employees_by_quarter/")
 def get_employees_by_quarter() -> dict:
