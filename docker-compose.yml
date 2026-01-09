@@ -1,0 +1,12 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    volumes:
+      - ./globant_de.db:/app/globant_de.db
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./globant_de.db
+    restart: unless-stopped
