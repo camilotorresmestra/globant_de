@@ -1,6 +1,6 @@
 # Globant Data Engineer Coding Challenge
 
-Hello! This is the code repository for the soluiton to the Globant Data Engineer coding challenge.
+Hello! This is the code repository for the solution to the Globant Data Engineer coding challenge.
 
 The challenge was to create a data engineering pipeline that can provide Analytics for an internal employee management system, through a REST API.
 
@@ -34,7 +34,7 @@ First draft of architecture for the solution:
    ```
 4. Access the FastAPI docs at `http://localhost:8000/docs` to interact with the API.
    - On Windows Command Prompt use `%cd%` instead of `$(pwd)` (PowerShell: `${PWD}` or `$(pwd).Path`).
-5. The SQLite database is persisted by mounting `globant_de.db` from your working directory. Set `UVICORN_RELOAD=` to disable auto-reload in production deployments.
+5. The SQLite database is persisted by mounting `globant_de.db` from your working directory. For production, override the container command to drop the `--reload` flag.
 
 ---------
 
