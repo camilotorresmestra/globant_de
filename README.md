@@ -24,16 +24,19 @@ First draft of architecture for the solution:
 
 1. Clone the repository.
 2. Build and start with Docker Compose:
-   ```bash
+   
+    ```bash
    docker-compose up --build
    ```
 3. Or use Docker directly:
+   
    ```bash
    docker build -t globant_de .
    docker run --rm -it -v $(pwd)/globant_de.db:/app/globant_de.db -e DATABASE_URL=sqlite:///./globant_de.db -p 8000:8000 globant_de
    ```
+
 4. Access the FastAPI docs at `http://localhost:8000/docs` to interact with the API.
-   - On Windows Command Prompt use `%cd%` instead of `$(pwd)` (PowerShell: `${PWD}` or `$(pwd).Path`).
+    > Or test the API using the requests module in the `api.ipynb` notebook.
 5. The SQLite database is persisted by mounting `globant_de.db` from your working directory. For production, override the container command to drop the `--reload` flag.
 
 ---------
