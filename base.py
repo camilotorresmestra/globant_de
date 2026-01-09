@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from sqlalchemy import (
     create_engine,
@@ -86,6 +87,28 @@ def get_jobs():
         result = connection.execute(sel)
     return result.fetchall()
 
+def insert_department_many(departments_list: list[dict]):
+    # Ignore rows that violate UNIQUE/PK constraints (SQLite)
+
+    stmt = sqlite_insert(departments).values(departments_list)
+    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])  # PK/unique key
+
+    with connection.begin():
+        connection.execute(stmt)
+
+def insert_job_many(jobs_list: list[dict]):
+    stmt = sqlite_insert(jobs).values(jobs_list)
+    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])  # PK/unique key
+
+    with connection.begin():
+        connection.execute(stmt)
+
+def insert_hired_employees(hired_employees_list: list[dict]):
+    stmt = sqlite_insert(hired_employees).values(hired_employees_list)
+    stmt = stmt.on_conflict_do_nothing(index_elements=["id"])  # PK/unique key
+
+    with connection.begin():
+        connection.execute(stmt)
 
 # Requirement 1
 # Number of employees hired for each job and department in 2021 divided by quarter. The

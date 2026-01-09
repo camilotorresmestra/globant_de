@@ -58,16 +58,13 @@ def create_upload_file(file: UploadFile = File(...)):
     for line in lines:
         fields = line.split(",")
         if file.filename == "departments.csv":
-            base.insert_department(int(fields[0]), fields[1])
+            #TODO: Standardize ColumnMapping across the project
+            base.insert_department_many([{"id": int(fields[0]), "department": fields[1]}])
+    
         elif file.filename == "jobs.csv":
-            base.insert_job(int(fields[0]), fields[1])
+            base.insert_jobs(int(fields[0]), fields[1])
         elif file.filename == "hired_employees.csv":
-            base.insert_hired_employee(
-                int(fields[0]),
-                fields[1],
-                fields[2],
-                int(fields[3]),
-                int(fields[4]),
+            base.insert_hired_employees(
             )
     return {"filename": file.filename, "status": "uploaded and data inserted"}
 
