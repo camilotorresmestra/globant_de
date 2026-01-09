@@ -7,7 +7,7 @@ The challenge was to create a data engineering pipeline that can provide Analyti
 ## Architecture
  
 First draft of architecture for the solution: 
-![alt text](image.png)
+![architecture diagram](docs/architecture.png)
 
 ## Tech Stack
 
