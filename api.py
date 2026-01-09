@@ -129,5 +129,14 @@ def create_hired_employee(id: int, name: str, datetime: str, department_id: int,
     insert_hired_employee(id, name, datetime, department_id, job_id)
     return {"status": "hired employee created"}
 
+#TODO: Implement get functions
+
+
+
+#TODO: Implement Get analytics endpoints
+
+
+
+
 if __name__ == "__main__":
     uvicorn.run(app)
