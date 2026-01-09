@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from typing import List, Dict
+from typing import List, Dict, Optional, Any, Iterator
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from sqlalchemy import (
@@ -23,7 +23,7 @@ from sqlalchemy import (
 class DatabaseManager:
     """Manages database connection and metadata."""
     
-    def __init__(self, database_url: str = None):
+    def __init__(self, database_url: Optional[str] = None):
         """Initialize database manager with connection URL."""
         self.database_url = database_url or os.getenv("DATABASE_URL", "sqlite:///./globant_de.db")
         self.engine = create_engine(
@@ -83,7 +83,7 @@ class Repository:
             result = self.db_manager.connection.execute(sel)
         return result.fetchall()
     
-    def insert_many(self, items: List[Dict], batch_size: int = 1000):
+    def insert_many(self, items: List[Dict[str, Any]], batch_size: int = 1000):
         """Insert multiple records with batch processing and conflict handling."""
         if not items:
             return
@@ -94,7 +94,7 @@ class Repository:
                 self.db_manager.connection.execute(stmt, chunk)
     
     @staticmethod
-    def _chunks(items: List[Dict], batch_size: int):
+    def _chunks(items: List[Dict[str, Any]], batch_size: int) -> Iterator[List[Dict[str, Any]]]:
         """Split items into chunks for batch processing."""
         for start_index in range(0, len(items), batch_size):
             yield items[start_index : start_index + batch_size]
@@ -131,7 +131,7 @@ class AnalyticsRepository:
         """Initialize analytics repository."""
         self.db_manager = db_manager
     
-    def query_hired_employees_by_quarter(self) -> List[Dict]:
+    def query_hired_employees_by_quarter(self) -> List[Dict[str, Any]]:
         """
         Number of employees hired for each job and department in 2021 divided by quarter.
         The table is ordered alphabetically by department and job.
@@ -175,7 +175,7 @@ class AnalyticsRepository:
             rows = result.mappings().all()
         return [dict(row) for row in rows]
     
-    def query_departments_above_mean_hires(self) -> List[Dict]:
+    def query_departments_above_mean_hires(self) -> List[Dict[str, Any]]:
         """
         List of ids, name and number of employees hired of each department that hired more
         employees than the mean of employees hired in 2021 for all the departments, ordered
@@ -252,27 +252,27 @@ def get_jobs():
     return _job_repo.get_all()
 
 
-def insert_department_many(departments_list: list[dict], batch_size: int = 1000):
+def insert_department_many(departments_list: List[Dict[str, Any]], batch_size: int = 1000):
     """Insert multiple departments with batch processing."""
     _department_repo.insert_many(departments_list, batch_size)
 
 
-def insert_job_many(jobs_list: list[dict], batch_size: int = 1000):
+def insert_job_many(jobs_list: List[Dict[str, Any]], batch_size: int = 1000):
     """Insert multiple jobs with batch processing."""
     _job_repo.insert_many(jobs_list, batch_size)
 
 
-def insert_hired_employees_many(hired_employees_list: list[dict], batch_size: int = 1000):
+def insert_hired_employees_many(hired_employees_list: List[Dict[str, Any]], batch_size: int = 1000):
     """Insert multiple hired employees with batch processing."""
     _hired_employee_repo.insert_many(hired_employees_list, batch_size)
 
 
-def query_hired_employees_by_quarter() -> list[dict]:
+def query_hired_employees_by_quarter() -> List[Dict[str, Any]]:
     """Query hired employees by quarter for analytics."""
     return _analytics_repo.query_hired_employees_by_quarter()
 
 
-def query_departments_above_mean_hires() -> list[dict]:
+def query_departments_above_mean_hires() -> List[Dict[str, Any]]:
     """Query departments with above-mean hires for analytics."""
     return _analytics_repo.query_departments_above_mean_hires()
 
