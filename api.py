@@ -6,12 +6,20 @@ from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
 from sqlalchemy.orm import sessionmaker
 import uvicorn
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 DATABASE_URL = "sqlite:///./globant_de.db"
 
-engine = create_engine(DATABASE_URL)
+#Define the datamodel
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False, "timeout": 30}
+)
 metadata = MetaData()
-connection = engine.connect()
+
+#Crurently the script is loading the data directly into the bronze layer
+#TODO: Implement separation of concerns between the layers by using functions from base.py
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 departments = Table(
     'departments', metadata,
@@ -36,22 +44,33 @@ hired_employees = Table(
 
 metadata.create_all(engine)
 
-# TODO: Implement error and exception handling
 def insert_department(id: int, department: str):
     ins = departments.insert().values(id=id, department=department)
-    connection.execute(ins)
-    connection.commit()
+    smt = sqlite_insert(departments).values(id=id, department=department).on_conflict_do_nothing(index_elements=['id'])
+    with SessionLocal() as session:
+        session.execute(ins)
+        session.execute(smt)
+        session.commit()
+
 def insert_job(id: int, job: str):
-    ins = jobs.insert().values(id=id, job=job)
-    connection.execute(ins)
-    connection.commit()
+    stmt = (
+        sqlite_insert(jobs)
+        .values(id=id, job=job)
+        .on_conflict_do_nothing(index_elements=["id"])
+    )
+    with SessionLocal() as session:
+        session.execute(stmt)
+        session.commit()
+
 def insert_hired_employee(id: int, name: str, datetime: str, department_id: int, job_id: int):
     ins = hired_employees.insert().values(id=id, name=name, datetime=datetime, department_id=department_id, job_id=job_id)
-    connection.execute(ins)
-    connection.commit()
+    smt = sqlite_insert(hired_employees).values(id=id, name=name, datetime=datetime, department_id=department_id, job_id=job_id).on_conflict_do_nothing(index_elements=['id'])
+    with SessionLocal() as session:
+        session.execute(ins)
+        session.execute(smt)
+        session.commit()
 
-#Define the datamodel
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 #why?
 app = FastAPI()
@@ -76,19 +95,28 @@ def create_upload_file(file: UploadFile = File(...)):
     lines = decoded_content.splitlines()
     for line in lines:
         fields = line.split(",")
-        print(fields)
         if file.filename == "departments.csv":
             insert_department(int(fields[0]), fields[1])
         elif file.filename == "jobs.csv":
             insert_job(int(fields[0]), fields[1])
         elif file.filename == "hired_employees.csv":
-            insert_hired_employee(int(fields[0]), fields[1], fields[2], int(fields[3]), int(fields[4]))
+            insert_hired_employee(int(fields[0]), fields[1], fields[2], fields[3], fields[4])
     return {"filename": file.filename, "status": "uploaded and data inserted"}
 
 @app.post("/create/job/")
 def create_job(id: int, job: str):
     insert_job(id, job)
     return {"status": "job created"}
+
+@app.post("/create/department/")
+def create_department(id: int, department: str):
+    insert_department(id, department)
+    return {"status": "department created"}
+
+@app.post("/create/hired_employee/")
+def create_hired_employee(id: int, name: str, datetime: str, department_id: int, job_id: int):
+    insert_hired_employee(id, name, datetime, department_id, job_id)
+    return {"status": "hired employee created"}
 
 if __name__ == "__main__":
     uvicorn.run(app)
