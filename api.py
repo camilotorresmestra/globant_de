@@ -1,6 +1,7 @@
-'''
+"""
 Implementation of the API endpoint for loading and parsing csv files using FastAPI.
-'''
+"""
+
 import os
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String
@@ -12,37 +13,42 @@ import base
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./globant_de.db")
 
-#Define the datamodel
+# Define the datamodel
 engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False, "timeout": 30}
+    DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 30}
 )
 metadata = MetaData()
 
-#Crurently the script is loading the data directly into the bronze layer
-#TODO: #4 Implement separation of concerns between the layers by using functions from base.py
+# Crurently the script is loading the data directly into the bronze layer
+# TODO: #4 Implement separation of concerns between the layers by using functions from base.py
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-#why?
+# why?
 app = FastAPI()
+
+
 def parse_csv(file_content: str) -> list[list[str]]:
-    '''
+    """
     A dummy CSV parser function that simulates parsing CSV content.
-    '''
+    """
     # Dummy parser function
     lines = file_content.splitlines()
     # we dont expect any headers on this data when inspecting it directly, however a sanity check is added:
     try:
         # try to convert the first value to int. If it fails, we assume headers are present.
-        int(lines[0].split(",")[0]) 
+        int(lines[0].split(",")[0])
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid CSV format: First column should be integer IDs. No headers are expected")
-    #TODO: Eventually manage the case where headers are present
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid CSV format: First column should be integer IDs. No headers are expected",
+        )
+    # TODO: Eventually manage the case where headers are present
     data = [line.split(",") for line in lines]
     return data
 
 
 app = FastAPI()
+
 
 @app.post("/uploadfile/")
 def create_upload_file(file: UploadFile = File(...)):
@@ -50,58 +56,75 @@ def create_upload_file(file: UploadFile = File(...)):
         content = f.read()
     decoded_content = content.decode("utf-8")
     lines = decoded_content.splitlines()
-    #validate the size of the file. Reject files with more than 1,000 lines
+    # validate the size of the file. Reject files with more than 1,000 lines
+    #TODO: handlle to divide into chunks and insert them
     BATCH_LIMIT = 1000
     if len(lines) > BATCH_LIMIT:
-        raise HTTPException(status_code=400, detail=f"File too large: Maximum {BATCH_LIMIT} lines allowed")
-    #parse the file and insert data into the database:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large: Unsupported for Large Files. {BATCH_LIMIT} lines allowed",
+        )
+    # parse the file and insert data into the database:
     for line in lines:
         fields = line.split(",")
         if file.filename == "departments.csv":
-            #TODO: Standardize ColumnMapping across the project
-            base.insert_department_many([{"id": int(fields[0]), "department": fields[1]}])
-    
+            # TODO: Standardize ColumnMapping across the project
+            base.insert_department_many(
+                [{"id": int(fields[0]), "department": fields[1]}]
+            )
+
         elif file.filename == "jobs.csv":
-            base.insert_jobs(int(fields[0]), fields[1])
+            base.insert_job_many([{"id": int(fields[0]), "job": fields[1]}])
         elif file.filename == "hired_employees.csv":
-            base.insert_hired_employees(
+            base.insert_hired_employees_many(
+                [
+                    {
+                        "id": int(fields[0]),
+                        "name": fields[1],
+                        "datetime": fields[2],
+                        "department_id": int(fields[3]),
+                        "job_id": int(fields[4]),
+                    }
+                ]
             )
     return {"filename": file.filename, "status": "uploaded and data inserted"}
+
 
 @app.post("/create/job/")
 def create_job(id: int, job: str):
     base.insert_job(id, job)
     return {"status": "job created"}
 
+
 @app.post("/create/department/")
 def create_department(id: int, department: str):
     base.insert_department(id, department)
     return {"status": "department created"}
 
+
 @app.post("/create/hired_employee/")
-def create_hired_employee(id: int, name: str, datetime: str, department_id: int, job_id: int):
+def create_hired_employee(
+    id: int, name: str, datetime: str, department_id: int, job_id: int
+):
     base.insert_hired_employee(id, name, datetime, department_id, job_id)
     return {"status": "hired employee created"}
 
-#TODO: Implement get functions
+
+# TODO: Implement get functions
 
 
 @app.get("/analytics/employees_by_quarter/")
-def get_employees_by_quarter()-> dict:
+def get_employees_by_quarter() -> dict:
     result = base.query_hired_employees_by_quarter()
-   
-    return {
-        "status": "success",
-        "data": result
-        }
-  
+
+    return {"status": "success", "data": result}
+
 
 @app.get("/analytics/departments_above_mean_hires/")
 def get_departments_above_mean() -> dict:
 
     result = base.query_departments_above_mean_hires()
     return {"status": "success", "data": result}
-
 
 
 if __name__ == "__main__":
