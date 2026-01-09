@@ -88,16 +88,16 @@ def get_jobs():
     return result.fetchall()
 
 def _chunks(items: list[dict], batch_size: int):
-    for i in range(0, len(items), batch_size):
-        yield items[i : i + batch_size]
-
+    for start_index in range(0, len(items), batch_size):
+        yield items[start_index : start_index + batch_size]
+# TODO: Reduce deduplication in the following three functions
 def insert_department_many(departments_list: list[dict], batch_size: int = 1000):
     if not departments_list:
         return
     stmt = sqlite_insert(departments).on_conflict_do_nothing(index_elements=["id"])
     with connection.begin():
         for chunk in _chunks(departments_list, batch_size):
-            connection.execute(stmt, chunk)  # executemany
+            connection.execute(stmt, chunk)
 
 def insert_job_many(jobs_list: list[dict], batch_size: int = 1000):
     if not jobs_list:

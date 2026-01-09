@@ -47,9 +47,6 @@ def parse_csv(file_content: str) -> list[list[str]]:
     return data
 
 
-app = FastAPI()
-
-
 @app.post("/uploadfile/")
 def create_upload_file(file: UploadFile = File(...)):
     with file.file as f:
@@ -62,7 +59,7 @@ def create_upload_file(file: UploadFile = File(...)):
     if len(lines) > BATCH_LIMIT:
         raise HTTPException(
             status_code=400,
-            detail=f"File too large: Unsupported for Large {BATCH_LIMIT} lines allowed",
+            detail=f"File too large: Maximum {BATCH_LIMIT} lines allowed",
         )
     # parse the file and insert data into the database:
     rows = parse_csv(decoded_content)
@@ -70,15 +67,45 @@ def create_upload_file(file: UploadFile = File(...)):
     if file.filename == "departments.csv":
         payload = [{"id": int(r[0]), "department": r[1]} for r in rows]
         base.insert_department_many(payload, batch_size=1000)
+    if file.filename == "departments.csv":
+        expected_columns = 2
+        for idx, r in enumerate(rows, start=1):
+            if len(r) < expected_columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Invalid row {idx} in departments.csv: expected at least "
+                        f"{expected_columns} columns, got {len(r)}"
+                    ),
+                )
+        payload = [{"id": int(r[0]), "department": r[1]} for r in rows]
+        base.insert_department_many(payload, batch_size=1000)
 
     elif file.filename == "jobs.csv":
+        expected_columns = 2
+        for idx, r in enumerate(rows, start=1):
+            if len(r) < expected_columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Invalid row {idx} in jobs.csv: expected at least "
+                        f"{expected_columns} columns, got {len(r)}"
+                    ),
+                )
         payload = [{"id": int(r[0]), "job": r[1]} for r in rows]
         base.insert_job_many(payload, batch_size=1000)
 
     elif file.filename == "hired_employees.csv":
-        payload = [
-            {
-                "id": int(r[0]),
+        expected_columns = 5
+        for idx, r in enumerate(rows, start=1):
+            if len(r) < expected_columns:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Invalid row {idx} in hired_employees.csv: expected at least "
+                        f"{expected_columns} columns, got {len(r)}"
+                    ),
+                )
                 "name": r[1],
                 "datetime": r[2],
                 "department_id": int(r[3]),
